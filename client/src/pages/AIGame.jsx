@@ -1,4 +1,18 @@
 import { useState, useMemo } from "react";
+import { useTheme } from "../context/ThemeContext";
+
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <button
+      className="theme-toggle"
+      onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+    >
+      {theme === "light" ? "🌙 Dark Mode" : "☀️ Light Mode"}
+    </button>
+  );
+}
 
 export default function AIGame() {
   const playerName = useMemo(
@@ -29,11 +43,9 @@ export default function AIGame() {
     if (b.every((v) => v)) return "Draw";
     return null;
   };
-
   const move = async (i) => {
     if (winner || board[i] || loading) return;
 
-  
     const newBoard = [...board];
     newBoard[i] = "X";
     setBoard(newBoard);
@@ -46,7 +58,6 @@ export default function AIGame() {
       return;
     }
 
-  
     setLoading(true);
     try {
       const res = await fetch("http://localhost:3000/api/ai-move", {
@@ -62,11 +73,7 @@ export default function AIGame() {
       const data = await res.json();
       const aiMove = data.move;
 
-      if (
-        aiMove !== null &&
-        aiMove !== undefined &&
-        newBoard[aiMove] === null
-      ) {
+      if (aiMove !== null && aiMove !== undefined && newBoard[aiMove] === null) {
         newBoard[aiMove] = "O";
         setBoard([...newBoard]);
         const aiWin = checkWinner(newBoard);
@@ -91,13 +98,17 @@ export default function AIGame() {
     setLoading(false);
   };
 
+  /* 🖼️ UI */
   return (
     <div className="ai-container">
       <div className="ai-card card">
+        {/* 🌓 Toggle di pojok kanan atas */}
+        <ThemeToggle />
+
         <h2>🤖 Player vs AI</h2>
         <div className="muted">Kamu: {playerName} (X)</div>
 
-        {/* Difficulty Selector */}
+        {/* 🎚️ Level kesulitan */}
         <div className="difficulty-selector" style={{ margin: "16px 0" }}>
           <label style={{ marginRight: "12px", fontSize: "14px" }}>
             Level Kesulitan:
@@ -111,7 +122,7 @@ export default function AIGame() {
               borderRadius: "8px",
               border: "1px solid var(--input-border)",
               background: "var(--input-bg)",
-              color: "var(--text)",
+              color: "var(--text-color)",
               fontSize: "14px",
               cursor: "pointer",
             }}
@@ -122,6 +133,7 @@ export default function AIGame() {
           </select>
         </div>
 
+        {/* 🏆 Scoreboard */}
         <div
           className="score-board"
           style={{
@@ -172,6 +184,7 @@ export default function AIGame() {
           </div>
         </div>
 
+        {/* 🏁 Winner Section */}
         {winner && (
           <div className="winner">
             {winner === "Draw"
@@ -183,6 +196,7 @@ export default function AIGame() {
           </div>
         )}
 
+        {/* 🎲 Board */}
         <div className="board">
           {board.map((v, i) => (
             <button
