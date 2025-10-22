@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router";
 import { socket } from "../socket";
 import { useTheme } from "../context/ThemeContext";
+import Swal from "sweetalert2";
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();
@@ -30,15 +31,26 @@ export default function Game() {
   const [players, setPlayers] = useState([]);
   const [msg, setMsg] = useState("");
   const [chat, setChat] = useState([]);
+  const [leaderboard, setLeaderboard] = useState({});
 
-  const addWin = (name) => {
-    const key = "leaderboard";
-    const prev = JSON.parse(localStorage.getItem(key) || "{}");
-    prev[name] = (prev[name] || 0) + 1;
-    localStorage.setItem(key, JSON.stringify(prev));
-  };
+  const addWin = useMemo(
+    () => (name) => {
+      const key = "leaderboard";
+      const prev = JSON.parse(localStorage.getItem(key) || "{}");
+      prev[name] = (prev[name] || 0) + 1;
+      localStorage.setItem(key, JSON.stringify(prev));
+      socket.emit("leaderboardUpdate", { roomId, leaderboard: prev });
+    },
+    [roomId]
+  );
+
   useEffect(() => {
     socket.emit("joinRoom", { roomId, playerName });
+
+    const savedLeaderboard = JSON.parse(
+      localStorage.getItem("leaderboard") || "{}"
+    );
+    setLeaderboard(savedLeaderboard);
 
     const onJoined = ({ players, turn, board }) => {
       setPlayers(players);
@@ -63,8 +75,16 @@ export default function Game() {
       setHighlight([]);
     };
     const onChat = (m) => setChat((p) => [...p, m]);
+    const onLeaderboardUpdate = ({ leaderboard: newLeaderboard }) => {
+      setLeaderboard(newLeaderboard);
+      localStorage.setItem("leaderboard", JSON.stringify(newLeaderboard));
+    };
+    const onLeaderboardClear = () => {
+      setLeaderboard({});
+      localStorage.removeItem("leaderboard");
+    };
     const onError = ({ message }) => {
-      alert(message);
+      sessionStorage.setItem("roomError", message);
       window.location.href = "/";
     };
 
@@ -73,6 +93,8 @@ export default function Game() {
     socket.on("winner", onWinner);
     socket.on("resetGame", onReset);
     socket.on("chatMessage", onChat);
+    socket.on("leaderboardUpdate", onLeaderboardUpdate);
+    socket.on("leaderboardClear", onLeaderboardClear);
     socket.on("error", onError);
 
     return () => {
@@ -81,9 +103,11 @@ export default function Game() {
       socket.off("winner", onWinner);
       socket.off("resetGame", onReset);
       socket.off("chatMessage", onChat);
+      socket.off("leaderboardUpdate", onLeaderboardUpdate);
+      socket.off("leaderboardClear", onLeaderboardClear);
       socket.off("error", onError);
     };
-  }, [roomId, playerName]);
+  }, [roomId, playerName, addWin]);
 
   const mySymbol = useMemo(() => {
     const myPlayer = players.find((p) => p.socketId === socket.id);
@@ -109,23 +133,24 @@ export default function Game() {
 
   return (
     <div className="card">
-      <ThemeToggle />
-
       <div className="header">
         <div>
           <h2>Room: {roomId}</h2>
           <div className="muted">
             Pemain: {players.map((p) => p.name).join(" vs ") || "-"}
           </div>
+          <div className="muted" style={{ marginTop: 4 }}>
+            Kamu: <b>{playerName}</b> ({mySymbol || "?"})
+          </div>
         </div>
-        <div className="muted">
-          Kamu: <b>{playerName}</b> ({mySymbol || "?"})
-        </div>
+        <ThemeToggle />
       </div>
 
-      <div className="layout">        <div>
+      <div className="layout">
+        <div className="game-section">
           <h3>
-            Giliran: <b>{turn}</b> {myTurn ? "— giliran kamu" : "— tunggu lawan"}
+            Giliran: <b>{turn}</b>{" "}
+            {myTurn ? "— giliran kamu" : "— tunggu lawan"}
           </h3>
 
           {winner && (
@@ -172,30 +197,33 @@ export default function Game() {
               );
             })}
           </div>
-
-          <Leaderboard />
         </div>
-        <div className="chat">
-          <div className="chat-head">💬 Chat</div>
-          <div className="chat-body" id="chat-body">
-            {chat.length === 0 ? (
-              <div className="muted">Belum ada pesan…</div>
-            ) : (
-              chat.map((c, idx) => (
-                <div key={idx}>
-                  <b>{c.playerName}</b>: {c.message}
-                </div>
-              ))
-            )}
-          </div>
-          <div className="chat-input">
-            <input
-              placeholder="Ketik pesan…"
-              value={msg}
-              onChange={(e) => setMsg(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && send()}
-            />
-            <button onClick={send}>Kirim</button>
+
+        <div className="sidebar">
+          <Leaderboard scores={leaderboard} roomId={roomId} />
+
+          <div className="chat">
+            <div className="chat-head">💬 Chat</div>
+            <div className="chat-body" id="chat-body">
+              {chat.length === 0 ? (
+                <div className="muted">Belum ada pesan…</div>
+              ) : (
+                chat.map((c, idx) => (
+                  <div key={idx}>
+                    <b>{c.playerName}</b>: {c.message}
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="chat-input">
+              <input
+                placeholder="Ketik pesan…"
+                value={msg}
+                onChange={(e) => setMsg(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && send()}
+              />
+              <button onClick={send}>Kirim</button>
+            </div>
           </div>
         </div>
       </div>
@@ -203,15 +231,33 @@ export default function Game() {
   );
 }
 
-function Leaderboard() {
-  const scores = JSON.parse(localStorage.getItem("leaderboard") || "{}");
-  const entries = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+function Leaderboard({ scores, roomId }) {
+  const entries = Object.entries(scores || {}).sort((a, b) => b[1] - a[1]);
 
   const clear = () => {
-    if (confirm("Hapus semua skor?")) {
-      localStorage.removeItem("leaderboard");
-      location.reload();
-    }
+    Swal.fire({
+      title: "Hapus Leaderboard?",
+      text: "Semua skor akan dihapus!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Ya, Hapus!",
+      cancelButtonText: "Batal",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        localStorage.removeItem("leaderboard");
+        // Emit clear event to all players in room
+        socket.emit("leaderboardClear", { roomId });
+        Swal.fire({
+          title: "Terhapus!",
+          text: "Leaderboard telah dikosongkan.",
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      }
+    });
   };
 
   return (

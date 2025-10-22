@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { useNavigate } from "react-router"
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { useTheme } from "../context/ThemeContext";
+import Swal from "sweetalert2";
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();
@@ -17,12 +18,30 @@ export default function Home() {
   const [roomId, setRoomId] = useState("");
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const errorMessage = sessionStorage.getItem("roomError");
+    if (errorMessage) {
+      sessionStorage.removeItem("roomError");
+      Swal.fire({
+        icon: "error",
+        title: "Tidak Bisa Masuk",
+        text: errorMessage,
+        confirmButtonText: "OK",
+      });
+    }
+  }, []);
+
   const createRandomRoom = () =>
     Math.random().toString(36).slice(2, 8).toUpperCase();
 
   const join = () => {
     if (!playerName.trim() || !roomId.trim()) {
-      alert("Isi nama dan Room ID dulu ya!");
+      Swal.fire({
+        icon: "warning",
+        title: "Isi Data Dulu",
+        text: "Isi nama dan Room ID dulu ya!",
+        confirmButtonText: "OK",
+      });
       return;
     }
     sessionStorage.setItem("playerName", playerName.trim());
@@ -33,7 +52,12 @@ export default function Home() {
 
   const playAI = () => {
     if (!playerName.trim()) {
-      alert("Isi nama kamu dulu ya!");
+      Swal.fire({
+        icon: "warning",
+        title: "Isi Nama Dulu",
+        text: "Isi nama kamu dulu ya!",
+        confirmButtonText: "OK",
+      });
       return;
     }
     sessionStorage.setItem("playerName", playerName.trim());
@@ -42,7 +66,6 @@ export default function Home() {
 
   return (
     <div className="card">
-      {/* 🌓 Tambahin tombol toggle di atas */}
       <ThemeToggle />
 
       <h1>🎮 Tic-Tac-Toe</h1>

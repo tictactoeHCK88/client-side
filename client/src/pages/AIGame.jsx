@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useTheme } from "../context/ThemeContext";
+import Swal from "sweetalert2";
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();
@@ -73,7 +74,11 @@ export default function AIGame() {
       const data = await res.json();
       const aiMove = data.move;
 
-      if (aiMove !== null && aiMove !== undefined && newBoard[aiMove] === null) {
+      if (
+        aiMove !== null &&
+        aiMove !== undefined &&
+        newBoard[aiMove] === null
+      ) {
         newBoard[aiMove] = "O";
         setBoard([...newBoard]);
         const aiWin = checkWinner(newBoard);
@@ -86,7 +91,12 @@ export default function AIGame() {
       }
     } catch (error) {
       console.error("Gagal ambil gerakan AI:", error);
-      alert("AI error! Silakan refresh halaman.");
+      Swal.fire({
+        icon: "error",
+        title: "AI Error",
+        text: "Terjadi kesalahan pada AI. Silakan refresh halaman.",
+        confirmButtonText: "OK",
+      });
     } finally {
       setLoading(false);
     }
@@ -98,17 +108,14 @@ export default function AIGame() {
     setLoading(false);
   };
 
-  /* 🖼️ UI */
   return (
     <div className="ai-container">
       <div className="ai-card card">
-        {/* 🌓 Toggle di pojok kanan atas */}
         <ThemeToggle />
 
         <h2>🤖 Player vs AI</h2>
         <div className="muted">Kamu: {playerName} (X)</div>
 
-        {/* 🎚️ Level kesulitan */}
         <div className="difficulty-selector" style={{ margin: "16px 0" }}>
           <label style={{ marginRight: "12px", fontSize: "14px" }}>
             Level Kesulitan:
@@ -127,13 +134,11 @@ export default function AIGame() {
               cursor: "pointer",
             }}
           >
-            <option value="easy">🟢 Mudah (Random)</option>
-            <option value="medium">🟡 Sedang (Gemini AI)</option>
-            <option value="hard">🔴 Sulit (Minimax - Unbeatable)</option>
+            <option value="easy">🟢 Mudah </option>
+            <option value="medium">🟡 Sedang </option>
+            <option value="hard">🔴 Sulit </option>
           </select>
         </div>
-
-        {/* 🏆 Scoreboard */}
         <div
           className="score-board"
           style={{
@@ -183,8 +188,6 @@ export default function AIGame() {
             </div>
           </div>
         </div>
-
-        {/* 🏁 Winner Section */}
         {winner && (
           <div className="winner">
             {winner === "Draw"
@@ -195,8 +198,6 @@ export default function AIGame() {
             </div>
           </div>
         )}
-
-        {/* 🎲 Board */}
         <div className="board">
           {board.map((v, i) => (
             <button
