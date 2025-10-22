@@ -33,7 +33,7 @@ export default function AIGame() {
   const move = async (i) => {
     if (winner || board[i] || loading) return;
 
-    // Player move
+  
     const newBoard = [...board];
     newBoard[i] = "X";
     setBoard(newBoard);
@@ -46,7 +46,7 @@ export default function AIGame() {
       return;
     }
 
-    // AI move
+  
     setLoading(true);
     try {
       const res = await fetch("http://localhost:3000/api/ai-move", {
@@ -122,7 +122,6 @@ export default function AIGame() {
           </select>
         </div>
 
-        {/* Score Board */}
         <div
           className="score-board"
           style={{

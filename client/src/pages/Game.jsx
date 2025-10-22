@@ -75,7 +75,7 @@ export default function Game() {
   const mySymbol = useMemo(() => {
     const myPlayer = players.find((p) => p.socketId === socket.id);
     if (!myPlayer) return "?";
-    // Player pertama yang join adalah X, kedua adalah O
+   
     return players[0]?.socketId === socket.id ? "X" : "O";
   }, [players]);
 
@@ -127,9 +127,7 @@ export default function Game() {
 
           <div className="board">
             {board.map((v, i) => {
-              // Tampilkan symbol dari board, atau jika highlight dan ada winner,
-              // ambil symbol dari cell pertama yang highlight (winning symbol)
-              let displaySymbol = v;
+                  let displaySymbol = v;
               if (
                 !v &&
                 winner &&
@@ -137,7 +135,7 @@ export default function Game() {
                 highlight.includes(i) &&
                 highlight.length > 0
               ) {
-                // Ambil symbol dari cell highlight pertama yang terisi
+              
                 const winningSymbol =
                   board[highlight[0]] ||
                   board[highlight[1]] ||
