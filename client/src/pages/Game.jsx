@@ -1,6 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router";
 import { socket } from "../socket";
+import { useTheme } from "../context/ThemeContext";
+
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <button
+      className="theme-toggle"
+      onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+    >
+      {theme === "light" ? "🌙 Dark Mode" : "☀️ Light Mode"}
+    </button>
+  );
+}
 
 export default function Game() {
   const { roomId } = useParams();
@@ -12,7 +26,7 @@ export default function Game() {
   const [board, setBoard] = useState(Array(9).fill(null));
   const [turn, setTurn] = useState("X");
   const [winner, setWinner] = useState(null);
-  const [highlight, setHighlight] = useState([]); // 🟢 posisi sel menang
+  const [highlight, setHighlight] = useState([]);
   const [players, setPlayers] = useState([]);
   const [msg, setMsg] = useState("");
   const [chat, setChat] = useState([]);
@@ -23,7 +37,6 @@ export default function Game() {
     prev[name] = (prev[name] || 0) + 1;
     localStorage.setItem(key, JSON.stringify(prev));
   };
-
   useEffect(() => {
     socket.emit("joinRoom", { roomId, playerName });
 
@@ -75,7 +88,6 @@ export default function Game() {
   const mySymbol = useMemo(() => {
     const myPlayer = players.find((p) => p.socketId === socket.id);
     if (!myPlayer) return "?";
-   
     return players[0]?.socketId === socket.id ? "X" : "O";
   }, [players]);
 
@@ -97,6 +109,8 @@ export default function Game() {
 
   return (
     <div className="card">
+      <ThemeToggle />
+
       <div className="header">
         <div>
           <h2>Room: {roomId}</h2>
@@ -109,11 +123,9 @@ export default function Game() {
         </div>
       </div>
 
-      <div className="layout">
-        <div>
+      <div className="layout">        <div>
           <h3>
-            Giliran: <b>{turn}</b>{" "}
-            {myTurn ? "— giliran kamu" : "— tunggu lawan"}
+            Giliran: <b>{turn}</b> {myTurn ? "— giliran kamu" : "— tunggu lawan"}
           </h3>
 
           {winner && (
@@ -127,7 +139,7 @@ export default function Game() {
 
           <div className="board">
             {board.map((v, i) => {
-                  let displaySymbol = v;
+              let displaySymbol = v;
               if (
                 !v &&
                 winner &&
@@ -135,7 +147,6 @@ export default function Game() {
                 highlight.includes(i) &&
                 highlight.length > 0
               ) {
-              
                 const winningSymbol =
                   board[highlight[0]] ||
                   board[highlight[1]] ||
@@ -164,7 +175,6 @@ export default function Game() {
 
           <Leaderboard />
         </div>
-
         <div className="chat">
           <div className="chat-head">💬 Chat</div>
           <div className="chat-body" id="chat-body">
